@@ -15,6 +15,10 @@ repos:
           - id: check-symlinks
             exclude: ^$
           - id: detect-private-key
+            # Test fixtures under internal/provider/ embed PEM markers
+            # in error-path assertions and generate ephemeral RSA keys
+            # in-process. They are never real secrets.
+            exclude: ^internal/provider/.*_test\.go$
           - id: end-of-file-fixer
           - id: fix-byte-order-marker
           - id: mixed-line-ending
