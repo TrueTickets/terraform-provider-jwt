@@ -78,31 +78,54 @@ jobs:
             - run: go test -v -cover ./internal/provider/
               timeout-minutes: 5
 
-    # Run acceptance tests in a matrix with Terraform CLI versions.
-    # No external credentials are required: jwt resources do not call
-    # any external service, so all acceptance steps run hermetically.
+    # Run acceptance tests against both Terraform and OpenTofu across
+    # a sampling of supported minor versions. No external credentials
+    # are required: jwt resources do not call any external service,
+    # so all acceptance steps run hermetically.
+    #
+    # For OpenTofu rows, TF_ACC_TERRAFORM_PATH is pointed at the
+    # `tofu` binary so terraform-plugin-testing drives the CLI side
+    # of the acceptance harness against OpenTofu instead of Terraform.
     acceptance-test:
-        name: Terraform Provider Acceptance Tests
+        name: Acceptance (${{ matrix.tool }} ${{ matrix.version }})
         needs: build
         runs-on: ubuntu-latest
         timeout-minutes: 15
         strategy:
             fail-fast: false
             matrix:
-                # list whatever Terraform versions here you would like to support
-                terraform:
-                    - "1.11.*"
-                    - "1.12.*"
+                include:
+                    # Terraform: sample older, middle, and current minors.
+                    - tool: terraform
+                      version: "1.11.*"
+                    - tool: terraform
+                      version: "1.13.*"
+                    - tool: terraform
+                      version: "1.15.*"
+                    # OpenTofu: previous and current minors.
+                    - tool: opentofu
+                      version: "1.11.*"
+                    - tool: opentofu
+                      version: "1.12.*"
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-go@v6
               with:
                   go-version-file: "go.mod"
                   cache: true
-            - uses: hashicorp/setup-terraform@v4
+            - if: matrix.tool == 'terraform'
+              uses: hashicorp/setup-terraform@v4
               with:
-                  terraform_version: ${{ matrix.terraform }}
+                  terraform_version: ${{ matrix.version }}
                   terraform_wrapper: false
+            - if: matrix.tool == 'opentofu'
+              uses: opentofu/setup-opentofu@v2
+              with:
+                  tofu_version: ${{ matrix.version }}
+                  tofu_wrapper: false
+            - if: matrix.tool == 'opentofu'
+              name: Point TF_ACC_TERRAFORM_PATH at the tofu binary
+              run: echo "TF_ACC_TERRAFORM_PATH=$(which tofu)" >> "$GITHUB_ENV"
             - run: go mod download
             - env:
                   TF_ACC: "1"
