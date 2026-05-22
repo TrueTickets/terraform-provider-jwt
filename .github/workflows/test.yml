@@ -75,7 +75,7 @@ jobs:
                   go-version-file: "go.mod"
                   cache: true
             - run: go mod download
-            - run: go test -v -cover ./jwt/
+            - run: go test -v -cover ./internal/provider/
               timeout-minutes: 5
 
     # Run acceptance tests in a matrix with Terraform CLI versions.
@@ -106,5 +106,5 @@ jobs:
             - run: go mod download
             - env:
                   TF_ACC: "1"
-              run: go test -v -cover ./jwt/
+              run: go test -v -cover ./internal/provider/
               timeout-minutes: 10
