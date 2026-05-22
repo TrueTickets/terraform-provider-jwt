@@ -1,17 +1,123 @@
-# JSON Web Token Provider
+# Terraform Provider for JSON Web Tokens
 
-The JSON Web Token provider provides a way to generate a valid JSON Web Token to be used on your Terraform code.
+A Terraform/OpenTofu provider for generating JSON Web Tokens (JWTs)
+inside your Terraform configuration.
+It supports HMAC-signed (`HS256`, `HS384`, `HS512`) and asymmetric
+(`RS256/384/512`, `ES256/384/512`) tokens.
 
-# Contributing
+## Requirements
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
+  (or [OpenTofu](https://opentofu.org/) >= 1.0)
+- Go >= 1.25 (for building from source)
 
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+## Installation
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+### From the Terraform/OpenTofu registry
+
+```hcl
+terraform {
+  required_providers {
+    jwt = {
+      source  = "truetickets/jwt"
+      version = "~> 1.0"
+    }
+  }
+}
+
+provider "jwt" {}
+```
+
+### Building from source
+
+```bash
+git clone https://github.com/TrueTickets/terraform-provider-jwt.git
+cd terraform-provider-jwt
+go build -o terraform-provider-jwt
+```
+
+## Resources
+
+### jwt_signed_token
+
+Generates a JWT signed with an RSA or ECDSA private key.
+
+```hcl
+resource "jwt_signed_token" "example" {
+  algorithm   = "RS256"
+  key         = file("private-key.pem")
+  claims_json = jsonencode({
+    iss = "my-issuer"
+    sub = "user-42"
+    exp = timeadd(timestamp(), "1h")
+  })
+}
+
+output "token" {
+  value     = jwt_signed_token.example.token
+  sensitive = true
+}
+```
+
+| Attribute     | Type   | Required | Description                                                                       |
+| ------------- | ------ | -------- | --------------------------------------------------------------------------------- |
+| `algorithm`   | String | Yes      | Signing algorithm: `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`.          |
+| `key`         | String | Yes      | PEM-encoded private key matching `algorithm`. Sensitive.                          |
+| `claims_json` | String | Yes      | The token's claims, as a JSON document.                                           |
+| `token`       | String | Computed | The signed JWT, as a string. Sensitive.                                           |
+
+### jwt_hashed_token
+
+Generates a JWT signed with an HMAC secret.
+
+```hcl
+resource "jwt_hashed_token" "example" {
+  algorithm   = "HS256"
+  secret      = var.shared_secret
+  claims_json = jsonencode({ sub = "user-42" })
+}
+```
+
+| Attribute         | Type   | Required | Description                                                          |
+| ----------------- | ------ | -------- | -------------------------------------------------------------------- |
+| `algorithm`       | String | No       | HMAC algorithm: `HS256`, `HS384`, `HS512`. Defaults to `HS512`.      |
+| `secret`          | String | Yes      | HMAC secret to sign the JWT with. Sensitive.                         |
+| `secret_encoding` | String | No       | One of `raw`, `base64`, `hex`. Defaults to `raw`.                    |
+| `claims_json`     | String | Yes      | The token's claims, as a JSON document.                              |
+| `token`           | String | Computed | The signed JWT, as a string. Sensitive.                              |
+
+## Development
+
+### Build
+
+```bash
+task build       # or: go build -o terraform-provider-jwt
+```
+
+### Test
+
+```bash
+task test        # unit tests
+task testacc     # acceptance tests (TF_ACC=1)
+```
+
+### Lint
+
+```bash
+task lint        # or: golangci-lint run
+```
+
+### Generate documentation
+
+```bash
+task generate
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development workflow.
+
+## License
+
+This provider is distributed under the
+[Mozilla Public License 2.0](LICENSE). It incorporates code originally
+licensed under the MIT License; see [NOTICE](NOTICE) for the preserved
+upstream attribution.
