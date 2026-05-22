@@ -17,7 +17,7 @@ func resourceHashedToken() *schema.Resource {
 		Read:   readHashedJWT,
 
 		Schema: map[string]*schema.Schema{
-			"algorithm": &schema.Schema{
+			"algorithm": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "HS512",
@@ -25,14 +25,14 @@ func resourceHashedToken() *schema.Resource {
 				ValidateFunc: validateHashingAlgorithm,
 				ForceNew:     true,
 			},
-			"secret": &schema.Schema{
+			"secret": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "HMAC secret to sign the JWT with.",
 				ForceNew:    true,
 				Sensitive:   true,
 			},
-			"secret_encoding": &schema.Schema{
+			"secret_encoding": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "raw",
@@ -40,13 +40,13 @@ func resourceHashedToken() *schema.Resource {
 				ValidateFunc: validateEncodingtype,
 				ForceNew:     true,
 			},
-			"claims_json": &schema.Schema{
+			"claims_json": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The token's claims, as a JSON document.",
 				ForceNew:    true,
 			},
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Description: "The JWT token, as a string.",
 				Computed:    true,
@@ -57,32 +57,35 @@ func resourceHashedToken() *schema.Resource {
 }
 
 func createHashedJWT(d *schema.ResourceData, meta interface{}) (err error) {
-	alg := d.Get("algorithm").(string)
+	alg, _ := d.Get("algorithm").(string)
 	signer := jwtgen.GetSigningMethod(alg)
 
-	claims := d.Get("claims_json").(string)
+	claims, _ := d.Get("claims_json").(string)
 
 	jsonClaims := make(map[string]interface{})
-	json.Unmarshal([]byte(claims), &jsonClaims)
+	if err = json.Unmarshal([]byte(claims), &jsonClaims); err != nil {
+		return fmt.Errorf("claims_json is not valid JSON: %w", err)
+	}
 
 	token := jwtgen.NewWithClaims(signer, jwtgen.MapClaims(jsonClaims))
 
-	secret_encoding := d.Get("secret_encoding").(string)
-	_secret := d.Get("secret").(string)
-	secret := []byte{}
+	secretEncoding, _ := d.Get("secret_encoding").(string)
+	rawSecret, _ := d.Get("secret").(string)
+	var secret []byte
 
-	if secret_encoding == "base64" {
-		secret, err = base64.StdEncoding.DecodeString(_secret)
+	switch secretEncoding {
+	case "base64":
+		secret, err = base64.StdEncoding.DecodeString(rawSecret)
 		if err != nil {
 			return err
 		}
-	} else if secret_encoding == "hex" {
-		secret, err = hex.DecodeString(_secret)
+	case "hex":
+		secret, err = hex.DecodeString(rawSecret)
 		if err != nil {
 			return err
 		}
-	} else {
-		secret = []byte(_secret)
+	default:
+		secret = []byte(rawSecret)
 	}
 
 	hashedToken, err := token.SignedString(secret)
@@ -91,7 +94,9 @@ func createHashedJWT(d *schema.ResourceData, meta interface{}) (err error) {
 	}
 	compactClaims, _ := json.Marshal(token.Claims)
 	d.SetId(string(compactClaims))
-	d.Set("token", hashedToken)
+	if err = d.Set("token", hashedToken); err != nil {
+		return err
+	}
 	return
 }
 
@@ -107,16 +112,16 @@ func readHashedJWT(d *schema.ResourceData, meta interface{}) error {
 func validateHashingAlgorithm(iAlg interface{}, k string) (warnings []string, errs []error) {
 	alg, ok := iAlg.(string)
 	if !ok {
-		errs = append(errs, fmt.Errorf("%s must be a string.", k))
+		errs = append(errs, fmt.Errorf("%s must be a string", k))
 		return
 	}
 	method := jwtgen.GetSigningMethod(alg)
 	if method == nil {
-		errs = append(errs, fmt.Errorf("%s is not a supported signing algorithm. Choices are HS256, HS384, HS512.", alg))
+		errs = append(errs, fmt.Errorf("%s is not a supported signing algorithm. Choices are HS256, HS384, HS512", alg))
 		return
 	}
 	if _, isHMAC := method.(*jwtgen.SigningMethodHMAC); !isHMAC {
-		errs = append(errs, fmt.Errorf("For RSA/ECDSA signing, please use the jwt_signed_token resource."))
+		errs = append(errs, fmt.Errorf("for RSA/ECDSA signing, please use the jwt_signed_token resource"))
 	}
 	return
 }
@@ -124,11 +129,11 @@ func validateHashingAlgorithm(iAlg interface{}, k string) (warnings []string, er
 func validateEncodingtype(iEnc interface{}, k string) (warnings []string, errs []error) {
 	enc, ok := iEnc.(string)
 	if !ok {
-		errs = append(errs, fmt.Errorf("%s must be a string.", k))
+		errs = append(errs, fmt.Errorf("%s must be a string", k))
 		return
 	}
 	if enc != "raw" && enc != "base64" && enc != "hex" {
-		errs = append(errs, fmt.Errorf("%s is not a supported encoding type. Choices are raw, base64, hex.", enc))
+		errs = append(errs, fmt.Errorf("%s is not a supported encoding type. Choices are raw, base64, hex", enc))
 		return
 	}
 	return
