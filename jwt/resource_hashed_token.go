@@ -12,6 +12,9 @@ import (
 
 func resourceHashedToken() *schema.Resource {
 	return &schema.Resource{
+		Description: "Generates a JWT signed with an HMAC secret " +
+			"(HS256/HS384/HS512). The token is computed locally during apply " +
+			"and stored in state as a sensitive computed attribute.",
 		Create: createHashedJWT,
 		Delete: deleteHashedJWT,
 		Read:   readHashedJWT,

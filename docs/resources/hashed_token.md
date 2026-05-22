@@ -3,12 +3,12 @@
 page_title: "jwt_hashed_token Resource - jwt"
 subcategory: ""
 description: |-
-
+  Generates a JWT signed with an HMAC secret (HS256/HS384/HS512). The token is computed locally during apply and stored in state as a sensitive computed attribute.
 ---
 
 # jwt_hashed_token (Resource)
 
-
+Generates a JWT signed with an HMAC secret (HS256/HS384/HS512). The token is computed locally during apply and stored in state as a sensitive computed attribute.
 
 ## Example Usage
 

@@ -11,6 +11,9 @@ import (
 
 func resourceSignedToken() *schema.Resource {
 	return &schema.Resource{
+		Description: "Generates a JWT signed with an asymmetric private key " +
+			"(RSA or ECDSA). The token is computed locally during apply and " +
+			"stored in state as a sensitive computed attribute.",
 		Create: createSignedJWT,
 		Delete: deleteSignedJWT,
 		Read:   readSignedJWT,

@@ -3,12 +3,12 @@
 page_title: "jwt_signed_token Resource - jwt"
 subcategory: ""
 description: |-
-
+  Generates a JWT signed with an asymmetric private key (RSA or ECDSA). The token is computed locally during apply and stored in state as a sensitive computed attribute.
 ---
 
 # jwt_signed_token (Resource)
 
-
+Generates a JWT signed with an asymmetric private key (RSA or ECDSA). The token is computed locally during apply and stored in state as a sensitive computed attribute.
 
 ## Example Usage
 
