@@ -31,19 +31,27 @@ for tooling, layout, and review.
 
 ### 1. Make your changes
 
-- Match the surrounding code style. The provider currently uses
-  `terraform-plugin-sdk/v2`; a migration to `terraform-plugin-framework`
-  is planned as a separate effort.
-- Resources live in `jwt/`. Each resource is a `resource_<name>.go` with
-  a matching `_test.go`.
+- The provider is built on
+  [terraform-plugin-framework](https://developer.hashicorp.com/terraform/plugin/framework)
+  v1.x and speaks Terraform plugin protocol 6.
+- Resources and data sources live in `internal/provider/`. Each one
+  follows the convention `<thing>_resource.go` /
+  `<thing>_data_source.go` with three test files alongside:
+    - `<thing>_test.go` — pure-function unit tests
+    - `<thing>_acc_test.go` — Terraform-lifecycle acceptance tests
+    - Shared helpers in `provider_acc_test.go`
 
 ### 2. Write tests
 
-- Add unit tests under `jwt/`. Tests that exercise the SDK acceptance
-  framework (`resource.Test`) should set `t.Setenv("TF_ACC", "1")`
-  themselves so they run in both `task test` and `task testacc`.
+- Add unit tests in `<thing>_test.go` for any new helper function. They
+  run on every `task test`.
+- Add acceptance tests in `<thing>_acc_test.go` using
+  `resource.Test(t, resource.TestCase{...})`. Aim for at least one step
+  that exercises Create + Read, one `ConfigPlanChecks` step that proves
+  the plan is empty on re-apply, and (for resources) one
+  `ImportStateVerify` step.
 - Acceptance tests for this provider are fully hermetic — the resources
-  do not call any external API.
+  do not call any external API, so no credentials are needed.
 
 ### 3. Run quality checks
 

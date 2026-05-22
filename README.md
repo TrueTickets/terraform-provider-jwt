@@ -86,6 +86,34 @@ resource "jwt_hashed_token" "example" {
 | `claims_json`     | String | Yes      | The token's claims, as a JSON document.                         |
 | `token`           | String | Computed | The signed JWT, as a string. Sensitive.                         |
 
+## Data Sources
+
+### jwt_decoded_token
+
+Decodes a JWT produced elsewhere into its header, claims, and signature
+so downstream Terraform configuration can branch on individual claim
+values. The signature is **not** verified — use this when the token's
+trust is already established by other means (TLS, mTLS, key-rotated
+upstream service).
+
+```hcl
+data "jwt_decoded_token" "example" {
+  token = var.upstream_jwt
+}
+
+output "subject" {
+  value = jsondecode(data.jwt_decoded_token.example.claims_json).sub
+}
+```
+
+| Attribute       | Type   | Direction | Description                                              |
+| --------------- | ------ | --------- | -------------------------------------------------------- |
+| `token`         | String | In        | The compact-serialized JWT to decode. Sensitive.         |
+| `header_json`   | String | Out       | JSON-encoded JWT header (JOSE header).                   |
+| `claims_json`   | String | Out       | JSON-encoded JWT claims payload.                         |
+| `signature_b64` | String | Out       | Base64url-encoded JWT signature (third compact segment). |
+| `algorithm`     | String | Out       | Signing algorithm declared in the header `alg` claim.    |
+
 ## Development
 
 ### Build
