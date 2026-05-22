@@ -46,6 +46,7 @@ output "token" {
 ### Optional
 
 - `algorithm` (String) HMAC algorithm. One of `HS256`, `HS384`, `HS512`. Defaults to `HS512`.
+- `kid` (String) Optional `kid` (key ID) value to set in the JWT header so downstream verifiers can pick the matching shared secret from a key registry.
 - `secret_encoding` (String) How `secret` is encoded. One of `raw`, `base64`, `hex`. Defaults to `raw`.
 
 ### Read-Only

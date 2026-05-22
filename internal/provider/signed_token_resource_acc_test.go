@@ -138,6 +138,54 @@ resource "jwt_signed_token" "example" {
 	})
 }
 
+// TestAccSignedTokenResource_kidEndToEnd is the integration test for
+// the kid header — the feature this provider was forked to add. The
+// resource signs a token with a kid, the data source decodes the
+// header, and the test asserts the kid round-tripped intact. This
+// catches any future regression that drops or mangles the header
+// between Create and the wire format.
+func TestAccSignedTokenResource_kidEndToEnd(t *testing.T) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	privPEM := encodePKCS1PrivateKey(t, priv)
+
+	cfg := fmt.Sprintf(`
+resource "jwt_signed_token" "with_kid" {
+  algorithm   = "RS256"
+  key         = %q
+  kid         = "service-account-key-2026"
+  claims_json = jsonencode({ sub = "robot" })
+}
+
+data "jwt_decoded_token" "decoded" {
+  token = jwt_signed_token.with_kid.token
+}
+`, privPEM)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("jwt_signed_token.with_kid", "kid", "service-account-key-2026"),
+					// The header_json string is order-stable for the
+					// fields tfplugindocs emits because the underlying
+					// JOSE library uses an alphabetical map encoder.
+					resource.TestCheckResourceAttr(
+						"data.jwt_decoded_token.decoded",
+						"header_json",
+						`{"alg":"RS256","kid":"service-account-key-2026","typ":"JWT"}`,
+					),
+				),
+			},
+		},
+	})
+}
+
 // TestAccSignedTokenResource_rejectsNonPEMKey exercises the
 // pemEncodedValidator.
 func TestAccSignedTokenResource_rejectsNonPEMKey(t *testing.T) {

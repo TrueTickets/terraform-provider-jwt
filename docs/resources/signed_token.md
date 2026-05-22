@@ -18,6 +18,11 @@ resource "jwt_signed_token" "example" {
   algorithm = "RS256"
   key       = file("${path.module}/private-key.pem")
 
+  # Optional. When set, "kid" is written into the JWT header so
+  # consumers can pick the right public key out of a multi-key JWKS
+  # (for example, Google service-account JWKS endpoints).
+  kid = "service-account-key-id"
+
   claims_json = jsonencode({
     iss = "my-issuer"
     sub = "user-42"
@@ -40,6 +45,10 @@ output "token" {
 - `algorithm` (String) Signing algorithm. One of `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`.
 - `claims_json` (String) The token's claims, as a JSON object.
 - `key` (String, Sensitive) PEM-encoded RSA or ECDSA private key matching `algorithm`.
+
+### Optional
+
+- `kid` (String) Optional `kid` (key ID) value to set in the JWT header. Required when consumers look up the public key from a JWKS keyed by `kid` (for example, Google service account JWKS at `https://www.googleapis.com/service_accounts/v1/jwk/<email>`).
 
 ### Read-Only
 

@@ -41,6 +41,7 @@ type signedTokenResourceModel struct {
 	ID         types.String `tfsdk:"id"`
 	Algorithm  types.String `tfsdk:"algorithm"`
 	Key        types.String `tfsdk:"key"`
+	Kid        types.String `tfsdk:"kid"`
 	ClaimsJSON types.String `tfsdk:"claims_json"`
 	Token      types.String `tfsdk:"token"`
 }
@@ -89,6 +90,17 @@ func (r *signedTokenResource) Schema(_ context.Context, _ resource.SchemaRequest
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"kid": schema.StringAttribute{
+				Description: "Optional `kid` (key ID) value to set in the JWT " +
+					"header. Required when consumers look up the public key " +
+					"from a JWKS keyed by `kid` (for example, Google service " +
+					"account JWKS at " +
+					"`https://www.googleapis.com/service_accounts/v1/jwk/<email>`).",
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"claims_json": schema.StringAttribute{
 				Description: "The token's claims, as a JSON object.",
 				Required:    true,
@@ -118,7 +130,12 @@ func (r *signedTokenResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	token, err := signJWT(plan.Algorithm.ValueString(), plan.Key.ValueString(), plan.ClaimsJSON.ValueString())
+	token, err := signJWT(
+		plan.Algorithm.ValueString(),
+		plan.Key.ValueString(),
+		plan.ClaimsJSON.ValueString(),
+		plan.Kid.ValueString(),
+	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to sign JWT", err.Error())
 		return
@@ -161,8 +178,11 @@ func (r *signedTokenResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // signJWT signs the given claims with the given PEM-encoded private
-// key, dispatching on the algorithm family.
-func signJWT(algorithm, pemKey, claimsJSON string) (string, error) {
+// key, dispatching on the algorithm family. If kid is non-empty it is
+// written into the JWT header under the standard "kid" claim so
+// downstream verifiers can look up the matching public key from a
+// JWKS.
+func signJWT(algorithm, pemKey, claimsJSON, kid string) (string, error) {
 	signer := jwtgen.GetSigningMethod(algorithm)
 	if signer == nil {
 		return "", fmt.Errorf("%s is not a supported signing algorithm", algorithm)
@@ -188,6 +208,9 @@ func signJWT(algorithm, pemKey, claimsJSON string) (string, error) {
 	}
 
 	tok := jwtgen.NewWithClaims(signer, jwtgen.MapClaims(claims))
+	if kid != "" {
+		tok.Header["kid"] = kid
+	}
 	return tok.SignedString(key)
 }
 

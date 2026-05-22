@@ -26,6 +26,11 @@ fresh install.
   encoding.
 - **New Data Source:** `jwt_decoded_token` — decodes a JWT into its
   header, claims, and signature without verifying the signature.
+- Optional `kid` (key ID) attribute on both resources. When set, the
+  value is written into the JWT header so downstream verifiers can look
+  up the matching public key from a JWKS (for example, Google
+  service-account JWKS endpoints). This is the headline reason the
+  upstream `geektheripper/jwt` provider was forked.
 - ImportState support on both resources via the SHA-256 token id.
 - Pre-commit, golangci-lint, prettier, yamllint, and editorconfig
   configuration aligned with the sibling TrueTickets Terraform provider

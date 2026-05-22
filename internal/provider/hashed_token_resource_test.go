@@ -32,7 +32,7 @@ func TestSignHashedJWT_Encodings(t *testing.T) {
 	var first string
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			tok, err := signHashedJWT("HS256", tc.secret, tc.encoding, `{"a":"b"}`)
+			tok, err := signHashedJWT("HS256", tc.secret, tc.encoding, `{"a":"b"}`, "")
 			if err != nil {
 				t.Fatalf("signHashedJWT: %v", err)
 			}
@@ -48,6 +48,39 @@ func TestSignHashedJWT_Encodings(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestSignHashedJWT_KidHeader asserts the kid argument round-trips
+// into the JWT header when set, and stays absent when empty. Mirrors
+// TestSignJWT_KidHeader for the HMAC code path.
+func TestSignHashedJWT_KidHeader(t *testing.T) {
+	t.Run("kid present", func(t *testing.T) {
+		token, err := signHashedJWT("HS256", "secret", "raw", `{"a":"b"}`, "my-key-id")
+		if err != nil {
+			t.Fatalf("signHashedJWT: %v", err)
+		}
+		parsed, _, err := jwtgen.NewParser().ParseUnverified(token, jwtgen.MapClaims{})
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		if got, _ := parsed.Header["kid"].(string); got != "my-key-id" {
+			t.Fatalf("header kid: want %q, got %v", "my-key-id", parsed.Header["kid"])
+		}
+	})
+
+	t.Run("kid omitted", func(t *testing.T) {
+		token, err := signHashedJWT("HS256", "secret", "raw", `{"a":"b"}`, "")
+		if err != nil {
+			t.Fatalf("signHashedJWT: %v", err)
+		}
+		parsed, _, err := jwtgen.NewParser().ParseUnverified(token, jwtgen.MapClaims{})
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		if _, present := parsed.Header["kid"]; present {
+			t.Fatalf("header kid: want absent, got %v", parsed.Header["kid"])
+		}
+	})
 }
 
 // TestSignHashedJWT_Errors covers misuse paths: non-HMAC algorithm,
@@ -69,7 +102,7 @@ func TestSignHashedJWT_Errors(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := signHashedJWT(tc.algorithm, tc.secret, tc.encoding, tc.claims)
+			_, err := signHashedJWT(tc.algorithm, tc.secret, tc.encoding, tc.claims, "")
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tc.want)
 			}

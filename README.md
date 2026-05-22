@@ -63,6 +63,7 @@ output "token" {
 | ------------- | ------ | -------- | ------------------------------------------------------------------------ |
 | `algorithm`   | String | Yes      | Signing algorithm: `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`. |
 | `key`         | String | Yes      | PEM-encoded private key matching `algorithm`. Sensitive.                 |
+| `kid`         | String | No       | Optional key ID written into the JWT header so JWKS lookups resolve.     |
 | `claims_json` | String | Yes      | The token's claims, as a JSON document.                                  |
 | `token`       | String | Computed | The signed JWT, as a string. Sensitive.                                  |
 
@@ -83,6 +84,7 @@ resource "jwt_hashed_token" "example" {
 | `algorithm`       | String | No       | HMAC algorithm: `HS256`, `HS384`, `HS512`. Defaults to `HS512`. |
 | `secret`          | String | Yes      | HMAC secret to sign the JWT with. Sensitive.                    |
 | `secret_encoding` | String | No       | One of `raw`, `base64`, `hex`. Defaults to `raw`.               |
+| `kid`             | String | No       | Optional key ID written into the JWT header.                    |
 | `claims_json`     | String | Yes      | The token's claims, as a JSON document.                         |
 | `token`           | String | Computed | The signed JWT, as a string. Sensitive.                         |
 

@@ -27,7 +27,7 @@ func TestSignJWT_RSA_RoundTrip(t *testing.T) {
 		Bytes: x509.MarshalPKCS1PrivateKey(priv),
 	}))
 
-	token, err := signJWT("RS256", privPEM, `{"sub":"alice"}`)
+	token, err := signJWT("RS256", privPEM, `{"sub":"alice"}`, "")
 	if err != nil {
 		t.Fatalf("signJWT: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestSignJWT_Errors(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := signJWT(tc.algorithm, tc.pemKey, tc.claims)
+			_, err := signJWT(tc.algorithm, tc.pemKey, tc.claims, "")
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tc.want)
 			}
@@ -96,4 +96,44 @@ func TestTokenID(t *testing.T) {
 	if tokenID("hello") == tokenID("world") {
 		t.Fatal("tokenID collision on distinct inputs")
 	}
+}
+
+// TestSignJWT_KidHeader asserts the kid argument round-trips into the
+// JWT header when set, and stays absent when empty. The kid header is
+// the reason this provider was forked: downstream verifiers (notably
+// Google's JWKS endpoint for service accounts) require it to pick the
+// correct public key out of a multi-key key set.
+func TestSignJWT_KidHeader(t *testing.T) {
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	privPEM := string(pem.EncodeToMemory(&pem.Block{
+		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv),
+	}))
+
+	t.Run("kid present", func(t *testing.T) {
+		token, err := signJWT("RS256", privPEM, `{"sub":"a"}`, "my-key-id")
+		if err != nil {
+			t.Fatalf("signJWT: %v", err)
+		}
+		parsed, _, err := jwtgen.NewParser().ParseUnverified(token, jwtgen.MapClaims{})
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		if got, _ := parsed.Header["kid"].(string); got != "my-key-id" {
+			t.Fatalf("header kid: want %q, got %v", "my-key-id", parsed.Header["kid"])
+		}
+	})
+
+	t.Run("kid omitted", func(t *testing.T) {
+		token, err := signJWT("RS256", privPEM, `{"sub":"a"}`, "")
+		if err != nil {
+			t.Fatalf("signJWT: %v", err)
+		}
+		parsed, _, err := jwtgen.NewParser().ParseUnverified(token, jwtgen.MapClaims{})
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		if _, present := parsed.Header["kid"]; present {
+			t.Fatalf("header kid: want absent, got %v", parsed.Header["kid"])
+		}
+	})
 }

@@ -43,6 +43,7 @@ type hashedTokenResourceModel struct {
 	Algorithm      types.String `tfsdk:"algorithm"`
 	Secret         types.String `tfsdk:"secret"`
 	SecretEncoding types.String `tfsdk:"secret_encoding"`
+	Kid            types.String `tfsdk:"kid"`
 	ClaimsJSON     types.String `tfsdk:"claims_json"`
 	Token          types.String `tfsdk:"token"`
 }
@@ -106,6 +107,15 @@ func (r *hashedTokenResource) Schema(_ context.Context, _ resource.SchemaRequest
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"kid": schema.StringAttribute{
+				Description: "Optional `kid` (key ID) value to set in the JWT " +
+					"header so downstream verifiers can pick the matching " +
+					"shared secret from a key registry.",
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"claims_json": schema.StringAttribute{
 				Description: "The token's claims, as a JSON object.",
 				Required:    true,
@@ -140,6 +150,7 @@ func (r *hashedTokenResource) Create(ctx context.Context, req resource.CreateReq
 		plan.Secret.ValueString(),
 		plan.SecretEncoding.ValueString(),
 		plan.ClaimsJSON.ValueString(),
+		plan.Kid.ValueString(),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to sign JWT", err.Error())
@@ -173,7 +184,9 @@ func (r *hashedTokenResource) ImportState(ctx context.Context, req resource.Impo
 
 // signHashedJWT decodes the secret according to encoding, parses the
 // claims, and signs the resulting JWT with the named HMAC algorithm.
-func signHashedJWT(algorithm, rawSecret, encoding, claimsJSON string) (string, error) {
+// If kid is non-empty it is written into the JWT header so consumers
+// looking up the shared secret by key ID can pick the right one.
+func signHashedJWT(algorithm, rawSecret, encoding, claimsJSON, kid string) (string, error) {
 	signer := jwtgen.GetSigningMethod(algorithm)
 	if signer == nil {
 		return "", fmt.Errorf("%s is not a supported HMAC algorithm", algorithm)
@@ -206,5 +219,8 @@ func signHashedJWT(algorithm, rawSecret, encoding, claimsJSON string) (string, e
 	}
 
 	tok := jwtgen.NewWithClaims(signer, jwtgen.MapClaims(claims))
+	if kid != "" {
+		tok.Header["kid"] = kid
+	}
 	return tok.SignedString(secret)
 }
