@@ -9,7 +9,7 @@ project adheres to
 
 ## [Unreleased]
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-05-22
 
 First release of the provider under the `truetickets/jwt` namespace. The
 provider is a near-complete rewrite of the upstream `geektheripper/jwt`
