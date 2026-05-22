@@ -1,0 +1,110 @@
+# Copyright (c) TrueTickets, Inc.
+# SPDX-License-Identifier: MPL-2.0
+---
+# Terraform Provider testing workflow.
+name: Tests
+
+# This GitHub action runs your tests for each pull request and push.
+on:
+    pull_request:
+        paths-ignore:
+            - "README.md"
+            - "CHANGELOG.md"
+            - "docs/**"
+    push:
+        branches:
+            - master
+        paths-ignore:
+            - "README.md"
+            - "CHANGELOG.md"
+            - "docs/**"
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+    contents: read
+
+jobs:
+    # Ensure project builds before running testing matrix
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-go@v6
+              with:
+                  go-version-file: "go.mod"
+                  cache: true
+            - run: go mod download
+            - run: go build -v .
+            - name: Run linters
+              uses: golangci/golangci-lint-action@v9
+              with:
+                  version: latest
+
+    generate:
+        name: Documentation Generation
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-go@v6
+              with:
+                  go-version-file: "go.mod"
+                  cache: true
+            # We need the latest version of Terraform for our documentation generation
+            - uses: hashicorp/setup-terraform@v4
+              with:
+                  terraform_wrapper: false
+            - run: go generate ./...
+            - name: git diff
+              run: |
+                  git diff --compact-summary --exit-code || \
+                    (echo; echo "Unexpected difference in directories after code generation."; \
+                     echo "Run 'go generate ./...' command and commit."; exit 1)
+
+    # Run unit tests
+    unit-test:
+        name: Unit Tests
+        needs: build
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-go@v6
+              with:
+                  go-version-file: "go.mod"
+                  cache: true
+            - run: go mod download
+            - run: go test -v -cover ./jwt/
+              timeout-minutes: 5
+
+    # Run acceptance tests in a matrix with Terraform CLI versions.
+    # No external credentials are required: jwt resources do not call
+    # any external service, so all acceptance steps run hermetically.
+    acceptance-test:
+        name: Terraform Provider Acceptance Tests
+        needs: build
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                # list whatever Terraform versions here you would like to support
+                terraform:
+                    - "1.11.*"
+                    - "1.12.*"
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-go@v6
+              with:
+                  go-version-file: "go.mod"
+                  cache: true
+            - uses: hashicorp/setup-terraform@v4
+              with:
+                  terraform_version: ${{ matrix.terraform }}
+                  terraform_wrapper: false
+            - run: go mod download
+            - env:
+                  TF_ACC: "1"
+              run: go test -v -cover ./jwt/
+              timeout-minutes: 10
