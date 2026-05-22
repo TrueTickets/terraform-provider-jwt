@@ -124,8 +124,21 @@ jobs:
                   tofu_version: ${{ matrix.version }}
                   tofu_wrapper: false
             - if: matrix.tool == 'opentofu'
-              name: Point TF_ACC_TERRAFORM_PATH at the tofu binary
-              run: echo "TF_ACC_TERRAFORM_PATH=$(which tofu)" >> "$GITHUB_ENV"
+              name: Configure terraform-plugin-testing for OpenTofu
+              # Point the test harness at the tofu binary, and rewrite
+              # the synthetic provider address it uses so OpenTofu
+              # accepts it. OpenTofu rejects the harness's Terraform-
+              # style default ("registry.terraform.io/-/<type>") with
+              # "The legacy provider namespace '-' can be used only
+              # with hostname registry.opentofu.org" — these env vars
+              # produce "registry.opentofu.org/truetickets/jwt"
+              # instead.
+              run: |
+                  {
+                    echo "TF_ACC_TERRAFORM_PATH=$(which tofu)"
+                    echo "TF_ACC_PROVIDER_HOST=registry.opentofu.org"
+                    echo "TF_ACC_PROVIDER_NAMESPACE=truetickets"
+                  } >> "$GITHUB_ENV"
             - run: go mod download
             - env:
                   TF_ACC: "1"
