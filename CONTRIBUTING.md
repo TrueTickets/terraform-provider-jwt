@@ -83,7 +83,7 @@ body using semantic line breaks.
 
 ## Pull request process
 
-1. Branch from `master`.
+1. Branch from `main`.
 2. Make atomic commits — one logical change per commit.
 3. Update `CHANGELOG.md` under `[Unreleased]`.
 4. Ensure `task lint`, `task test`, and `pre-commit run --all-files` are
@@ -97,7 +97,7 @@ Tagged releases (`vX.Y.Z`) trigger the `Release` workflow, which uses
 goreleaser to build artifacts for `linux`/`darwin` × `amd64`/`arm64`,
 sign the checksums with the repository's GPG key, and attach the
 terraform registry manifest. Do not tag from a feature branch — tags
-should come off `master` after merge.
+should come off `main` after merge.
 
 ## Questions?
 
