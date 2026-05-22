@@ -1,0 +1,63 @@
+# Copyright (c) TrueTickets, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+version: "3"
+
+vars:
+    PROVIDER_NAME: jwt
+
+tasks:
+    default:
+        cmds:
+            - task: fmt
+            - task: lint
+            - task: install
+            - task: generate
+
+    build:
+        desc: Build the provider
+        cmds:
+            - go build -v ./...
+
+    install:
+        desc: Install the provider locally
+        deps: [build]
+        cmds:
+            - go install -v ./...
+
+    lint:
+        desc: Run linters
+        cmds:
+            - golangci-lint run
+
+    generate:
+        desc: Generate documentation
+        cmds:
+            - cd tools && go generate ./...
+
+    fmt:
+        desc: Format code
+        cmds:
+            - gofmt -s -w -e .
+
+    test:
+        desc: Run unit tests
+        cmds:
+            - go test -v -cover -timeout=120s -parallel=10 ./...
+
+    testacc:
+        desc: Run acceptance tests
+        cmds:
+            - TF_ACC=1 go test -v -cover -timeout 120m ./...
+
+    tidy:
+        desc: Tidy go modules
+        cmds:
+            - go mod tidy
+
+    clean:
+        desc: Clean build artifacts
+        cmds:
+            - rm -rf dist/
+            - rm -rf bin/
+            - rm -f terraform-provider-{{.PROVIDER_NAME}}

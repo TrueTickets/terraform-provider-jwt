@@ -1,32 +1,60 @@
-/terraform-provider-jwt
+# Binaries and executables
 *.dll
 *.exe
+terraform-provider-jwt
+
+# OS artifacts
 .DS_Store
+
+# Terraform artifacts
 example.tf
 terraform.tfplan
 terraform.tfstate
+*.tfstate.lock.info
+.terraform/
+*.backup
+./*.tfstate
+
+# Build artifacts
 bin/
-modules-dev/
+dist/
 /pkg/
+*.test
+coverage.out
+
+# IDE and editor
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.*.swp
+
+# Claude AI settings (keep custom instructions, ignore local settings)
+.claude/*
+!.claude/custom/
+
+# Logs
+*.log
+*.bak
+
+# Development
+modules-dev/
 website/.vagrant
 website/.bundle
 website/build
 website/node_modules
-.vagrant/
-*.backup
-./*.tfstate
-.terraform/
-*.log
-*.bak
-*~
-.*.swp
-.idea
-*.iml
-*.test
-*.iml
-
 website/vendor
+.vagrant/
+
+# Shell files
+*.in
+*.out
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+
+# Keep windows files with windows line endings
+*.winfile eol=crlf
