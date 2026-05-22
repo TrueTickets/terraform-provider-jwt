@@ -5,6 +5,7 @@ go 1.25.10
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 )
 
