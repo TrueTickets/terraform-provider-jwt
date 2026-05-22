@@ -3,7 +3,7 @@
 page_title: "JSON Web Token Provider"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # JSON Web Token Provider

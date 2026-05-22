@@ -3,7 +3,7 @@
 page_title: "jwt_signed_token Resource - terraform-provider-jwt"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # jwt_signed_token (Resource)
