@@ -37,11 +37,11 @@ output "token" {
 
 ### Required
 
-- `algorithm` (String) Signing algorithm to use.
-- `claims_json` (String) The token's claims, as a JSON document.
-- `key` (String, Sensitive) PEM-formated key to sign the JWT with.
+- `algorithm` (String) Signing algorithm. One of `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`.
+- `claims_json` (String) The token's claims, as a JSON object.
+- `key` (String, Sensitive) PEM-encoded RSA or ECDSA private key matching `algorithm`.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `token` (String, Sensitive) The JWT token, as a string.
+- `id` (String) SHA-256 hex digest of the signed token. Stable for a given (algorithm, key, claims_json) tuple.
+- `token` (String, Sensitive) The signed JWT, as a compact-serialized string.

@@ -40,15 +40,15 @@ output "token" {
 
 ### Required
 
-- `claims_json` (String) The token's claims, as a JSON document.
-- `secret` (String, Sensitive) HMAC secret to sign the JWT with.
+- `claims_json` (String) The token's claims, as a JSON object.
+- `secret` (String, Sensitive) HMAC secret used to sign the JWT.
 
 ### Optional
 
-- `algorithm` (String) Signing algorithm to use. Defaults to `HS512`. Supported algorithms are `HS256`, `HS384`, `HS512`.
-- `secret_encoding` (String) Secret encoding type. Defaults to `raw`. Supported algorithms are `raw`, `base64`, `hex`.
+- `algorithm` (String) HMAC algorithm. One of `HS256`, `HS384`, `HS512`. Defaults to `HS512`.
+- `secret_encoding` (String) How `secret` is encoded. One of `raw`, `base64`, `hex`. Defaults to `raw`.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `token` (String, Sensitive) The JWT token, as a string.
+- `id` (String) SHA-256 hex digest of the signed token. Stable for a given (algorithm, secret, secret_encoding, claims_json) tuple.
+- `token` (String, Sensitive) The signed JWT, as a compact-serialized string.
